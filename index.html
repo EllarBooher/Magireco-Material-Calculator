@@ -4,6 +4,9 @@
 	<meta http-equiv="content-type" content="text/html; charset=UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<style type="text/css">
+    div p {
+        white-space: pre;
+    }
 	.tab {
 		overflow: hidden;
 		border: 1px solid #ccc;
@@ -12,6 +15,7 @@
 
 	/* Style the buttons that are used to open the tab content */
 	.tab button {
+		width: 33%;
 		background-color: inherit;
 		float: left;
 		border: none;
@@ -33,44 +37,81 @@
 
 	/* Style the tab content */
 	.tabcontent {
+		animation: fadeEffect 0.8s;
 		display: none;
 		padding: 6px 12px;
 		border: 1px solid #ccc;
 		border-top: none;
 	}
+	
+	@keyframes fadeEffect {
+		from {opacity: 0;}
+		to {opacity: 1;}
+	}
 	</style>
 	<title> Magia Record Material Calculator </title>
+    <script  src="vue.min.js"></script>
 	<body>
 	<div class="tab">
-		<button class="tablinks" onclick="openTab(event, 'A')">A</button>
-		<button class="tablinks" onclick="openTab(event, 'B')">B</button>
+		<button class="tablinks" onclick="openTab(event, 'A')">Select Units</button>
+		<button class="tablinks" onclick="openTab(event, 'B')">Edit Units</button>
+		<button class="tablinks" onclick="openTab(event, 'C')">Material Totals</button>
 	</div>
 	<div id="A" class="tabcontent">
-		<h3>A</h3>
-		<p>Here goes the unit interface</p>
+		<p>{{ message }}</p>
 	</div>
 	<div id="B" class="tabcontent">
-		<h3>B</h3>
+		<p>Here goes the unit interface</p>
+	</div>
+	<div id="C" class="tabcontent">
 		<p>Here goes the material interface</p>
 	</div>
-	<script>
-	function openTab(evt, tabName) {
-		var i, tabcontent, tablinks;
-		// Get all elements with class="tabcontent" and hide them
-		tabcontent = document.getElementsByClassName("tabcontent");
-		for (i=0;i<tabcontent.length;i++) {
-			tabcontent[i].style.display = "none";
-		}
-		// Get all elements with class="tablinks" and remove the class "active"
-		tablinks = document.getElementsByClassName("tablinks");
-		for (i=0;i<tablinks.length;i++) {
-			tablinks[i].className = tablinks[i].className.replace(" active", "");
-		}
-		
-		// Show the current tab, and add an "active" class to the button the opened it
-		document.getElementById(tabName).style.display = "block";
-		evt.currentTarget.className += " active";
-	}
+    <script>
+        function openTab(evt, tabName) {
+            var i, tabcontent, tablinks;
+            // Get all elements with class="tabcontent" and hide them
+            tabcontent = document.getElementsByClassName("tabcontent");
+            for (i=0;i<tabcontent.length;i++) {
+                tabcontent[i].style.display = "none";
+            }
+            // Get all elements with class="tablinks" and remove the class "active"
+            tablinks = document.getElementsByClassName("tablinks");
+            for (i=0;i<tablinks.length;i++) {
+                tablinks[i].className = tablinks[i].className.replace(" active", "");
+            }
+            
+            // Show the current tab, and add an "active" class to the button the opened it
+            document.getElementById(tabName).style.display = "block";
+            evt.currentTarget.className += " active";
+        }
+        
+        function loadJSON(callback, url) {   
+            var xobj = new XMLHttpRequest();
+                xobj.overrideMimeType("application/json");
+            xobj.open('GET', url, true); // Replace 'my_data' with the path to your file
+            xobj.onload = function () {
+                // Required use of an anonymous callback as .open will NOT return a value but simply returns undefined in asynchronous mode
+                callback(xobj.responseText);
+            };
+            xobj.send(null);  
+        }
+        
+        var A = new Vue({
+            el: '#A',
+            data: {
+                message: []
+            }
+        })
+        
+        url = "Data.json";
+        loadJSON(function(response) {
+            // Parse JSON string into object
+            var data = JSON.parse(response);
+            console.log(data);
+            for (i in data) {
+                A.message.push(data[i]);
+            }
+        }, url);
 	</script>
 	</body>
 </head>

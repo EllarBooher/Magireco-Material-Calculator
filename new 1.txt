@@ -1,0 +1,33 @@
+[
+	{
+		"id":"30154",
+		"name":"Aino Mito",
+		"awakenMaterials": {
+			"4":{
+				"551": 3,
+				"306": 12
+			},
+			"5": {
+			}
+		},
+		"magiaMaterials": {
+			"2":{
+				"305": 5
+			}
+		}
+	},
+	{
+		"id":" ",
+		"name":" ",
+		"awakenMaterials": {
+			"4":{
+			},
+			"5": {
+			}
+		},
+		"magiaMaterials": {
+			"2":{
+			}
+		}
+	}
+]
