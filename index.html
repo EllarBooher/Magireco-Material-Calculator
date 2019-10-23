@@ -13,9 +13,37 @@
 		background-color: #f1f1f1;
 	}
     .girl-selector {
+        display:flex;
+        justify-content:space-between;
+        align-items:center;
 		border: 1px solid #ccc;
-		background-color: #f1f1f1;    
+		background-color: #f1f1f1;
     }
+    .girl-selector input {
+        width:100px;
+    }
+
+    .girl-editor {
+        display:flex;
+        align-items: center;
+        text-align: center;
+		border: 1px solid #ccc;
+		background-color: #f1f1f1;
+    }
+    
+    .girl-editor div {
+        width:100%;
+        display:inline-block;
+    }
+
+    .awaken-circles {
+        height: 100px;
+        display:flex;
+        align-items: center;
+        text-align: center;
+		border: 1px solid #ccc;
+		background-color: #f1f1f1;
+    }    
     
     .puellaPortrait1 {
         width: 100px;
@@ -23,6 +51,13 @@
         border: 1px solid black;
         border-radius: 5px;    
     }
+    
+    .awakenCircleImages {
+        width: 50px;
+        height; 50px;
+        border: 1px solid black;
+        border-radius: 5px;    
+    } 
     
 	/* Style the buttons that are used to open the tab content */
 	.tab button {
@@ -65,14 +100,29 @@
 	<body>
 	<div class="tab">
 		<button class="tablinks" onclick="openTab(event, 'A')">Select Units</button>
-		<button class="tablinks" onclick="openTab(event, 'B')">Edit Units</button>
+		<button class="tablinks" onclick="openTab(event, 'B');updateGirls()">Edit Units</button>
 		<button class="tablinks" onclick="openTab(event, 'C')">Material Totals</button>
 	</div>
 	<div id="A" class="tabcontent">
-		<div class="girl-selector" v-for="item in items"><img class="puellaPortrait1" v-bind:src="item.src">{{ item.message }}</div>
+		<span class="girl-selector" v-for="item in items">
+            <img class="puellaPortrait1" v-bind:src="item.src">
+            <div>{{ item.Name }}</div>
+                <input v-on:click="console.log(A)" type="checkbox" id="checkbox" v-model="item.checked">
+        </span>
 	</div>
 	<div id="B" class="tabcontent">
-		<p>Here goes the unit interface</p>
+		<div v-for="item in items">
+            <div class="girl-editor">
+                <img class="puellaPortrait1" v-bind:src="item.src">
+                <div>{{ item.Name }}</div>
+            </div>
+            <div class="awaken-circles">
+                <div v-for="material in Object.keys(item['awakenLevel']['4'])">
+                    <img class="awakenCircleImages" v-bind:src="images[material]"></img>
+                </div>
+            </div>
+        </div>
+        
 	</div>
 	<div id="C" class="tabcontent">
 		<p>Here goes the material interface</p>
@@ -95,7 +145,10 @@
             document.getElementById(tabName).style.display = "block";
             evt.currentTarget.className += " active";
         }
-        
+        function extend(obj, src) {
+            Object.keys(src).forEach(function(key) { obj[key] = src[key]; });
+            return obj;
+        }
         function loadJSON(callback, url) {   
             var xobj = new XMLHttpRequest();
                 xobj.overrideMimeType("application/json");
@@ -111,14 +164,39 @@
             destination = new Image();
             destination.src = path;
         }
+        
         var A = new Vue({
             el: '#A',
             data: {
-                test: "edit me",
                 items: [
                 ]
             }
         })
+        
+        var B = new Vue({
+            el: '#B',
+            data: {
+                items: [
+                ],
+                images: {
+                }
+            }
+        })
+        
+        for (let i = 100; i < 611; i++) {
+            B.images[i] = 'itemImages/item_gift_'+i+'.png';
+        };
+        
+        console.log(B.images);
+        function updateGirls() {
+            B.items = [];
+            for (i in A.items) {
+                if (A.items[i].checked) {
+                    console.log("Added "+A.items[i].Name);
+                    B.items.push(A.items[i]);
+                }
+            }
+        }
         console.log(A);
         url = "Data.json";
         loadJSON(function(response) {
@@ -129,7 +207,7 @@
                 var path = 'puellaImages/card_'+data[i]["ID"]+'_f.png';
                 console.log(data[i], path);
                 newImage(path, puellaImages[i]);
-                A.items.push({message: data[i]["Name"], src: path});
+                A.items.push(extend(data[i], {src: path, checked: false}));
             }
             console.log(A)
         }, url);
