@@ -12,7 +12,18 @@
 		border: 1px solid #ccc;
 		background-color: #f1f1f1;
 	}
-
+    .girl-selector {
+		border: 1px solid #ccc;
+		background-color: #f1f1f1;    
+    }
+    
+    .puellaPortrait1 {
+        width: 100px;
+        height; 100px;
+        border: 1px solid black;
+        border-radius: 5px;    
+    }
+    
 	/* Style the buttons that are used to open the tab content */
 	.tab button {
 		width: 33%;
@@ -58,7 +69,7 @@
 		<button class="tablinks" onclick="openTab(event, 'C')">Material Totals</button>
 	</div>
 	<div id="A" class="tabcontent">
-		<p>{{ message }}</p>
+		<div class="girl-selector" v-for="item in items"><img class="puellaPortrait1" v-bind:src="item.src">{{ item.message }}</div>
 	</div>
 	<div id="B" class="tabcontent">
 		<p>Here goes the unit interface</p>
@@ -79,7 +90,7 @@
             for (i=0;i<tablinks.length;i++) {
                 tablinks[i].className = tablinks[i].className.replace(" active", "");
             }
-            
+            console.log(document.getElementById("A"))
             // Show the current tab, and add an "active" class to the button the opened it
             document.getElementById(tabName).style.display = "block";
             evt.currentTarget.className += " active";
@@ -95,22 +106,32 @@
             };
             xobj.send(null);  
         }
-        
+        var puellaImages = [];
+        function newImage(path, destination) {
+            destination = new Image();
+            destination.src = path;
+        }
         var A = new Vue({
             el: '#A',
             data: {
-                message: []
+                test: "edit me",
+                items: [
+                ]
             }
         })
-        
+        console.log(A);
         url = "Data.json";
         loadJSON(function(response) {
             // Parse JSON string into object
             var data = JSON.parse(response);
             console.log(data);
             for (i in data) {
-                A.message.push(data[i]);
+                var path = 'puellaImages/card_'+data[i]["ID"]+'_f.png';
+                console.log(data[i], path);
+                newImage(path, puellaImages[i]);
+                A.items.push({message: data[i]["Name"], src: path});
             }
+            console.log(A)
         }, url);
 	</script>
 	</body>
