@@ -70,7 +70,7 @@
         -o-user-select: none;
         user-select: none;
         width: 16.7%;
-        height: 100px;
+        height: 120px;
         display:flex;
         flex-direction: column;
         align-items: center;
@@ -97,6 +97,27 @@
         border-radius: 5px;    
     } 
     
+    .material-template-wrapper {
+        height: 60px;
+        display: flex;
+        flex-direction: row;
+    }
+
+    .material-template-wrapper div {
+        width: 200px;
+        align-items: center;
+        display: flex;
+        flex-direction: row;
+    }
+    .material-template-wrapper div div {
+        padding: 10px;
+        width: 100%;
+    }
+    .material-template-wrapper div img {
+        width: 40px;
+        height: 40px;
+    }
+
 	/* Style the buttons that are used to open the tab content */
 	.tab button {
 		width: 33%;
@@ -127,7 +148,27 @@
 		border: 1px solid #ccc;
 		border-top: none;
 	}
-	
+    #D {
+        display: flex;
+        flex-direction: column;
+    }
+    #D div {
+        display: flex;
+        flex-direction: row;
+    }
+    #D button {
+        height: 50px;
+        width: 50%;
+    }
+    .textwrapper {
+        width:100%;
+        height:500px;
+    }
+    .textwrapper textarea {
+        width:100%;
+        height:500px;
+    }
+
 	@keyframes fadeEffect {
 		from {opacity: 0;}
 		to {opacity: 1;}
@@ -140,7 +181,8 @@
         <div class="tab">
     		<button class="tablinks" onclick="openTab(event, 'A')">Select Units</button>
     		<button class="tablinks" onclick="openTab(event, 'B')">Edit Units</button>
-    		<button class="tablinks" onclick="openTab(event, 'C')">Material Totals</button>
+    		<button class="tablinks" onclick="openTab(event, 'C');A.updateRequiredMats()">Material Totals</button>
+            <button class="tablinks" onclick="openTab(event, 'D')">Save/Load</button>
     	</div>
     	<div id="A" class="tabcontent">
             <p>Click a girl to add them to your active roster.</p>
@@ -172,12 +214,28 @@
             </div>
             
     	</div>
-    	<div id="C" class="tabcontent">
-    		<div v-for="i in requiredMats">
-                {{ getItemProperty(i.ID,'name') }} : {{ i.count }}
-                
+        <div id="C" class="tabcontent">
+                <div class="material-template-wrapper">
+                    <div>
+                    </div>
+                    <div>
+                        Total Needed
+                    </div>
+                    <div></div>
+                </div>
+            <material-template 
+                v-for="i in requiredMats"
+                :material="i"/>
+        </div>
+        <div id="D" class="tabcontent">
+            <div>
+                <button v-on:click="exportData()">Export Data</button>
+                <button v-on:click="importData()">Import Data</button>
             </div>
-    	</div>
+            <div class="textwrapper">
+                <textarea id="textarea" v-model="currentExportString">{{ currentExport }}</textarea> 
+            </div>
+        </div>
     </div>
 
     <script>
@@ -185,13 +243,32 @@
             template: ` 
                 <div v-bind:class="{ 'active': material.checked }" v-on:click="$emit('clickawakencircle',material.ID);">
                     <img class="awakenCircleImages" v-bind:src="material.src">
-                    {{ material.name }}
+                    {{ material.name }} <br>
+                    {{ material.checked ? material.material +' / '+material.material : '0 / '+material.material }}
                 </div>
             `,
             methods: {
             },
             props: ['material']
         });
+        Vue.component('material-template', {
+            template: `
+                <div class="material-template-wrapper">
+                    <div>
+                        <img v-bind:src="material.src">
+                        <div>{{ material.name }}</div>
+                    </div>
+                    <div>
+                        {{ material.count }}
+                    </div>
+                    <div></div>
+                </div>
+            `,
+            methods: {
+
+            },
+            props: ['material']
+        })
     </script>
 
     <script>
@@ -207,7 +284,6 @@
             for (i=0;i<tablinks.length;i++) {
                 tablinks[i].className = tablinks[i].className.replace(" active", "");
             }
-            console.log(document.getElementById("A"))
             // Show the current tab, and add an "active" class to the button the opened it
             document.getElementById(tabName).style.display = "block";
             evt.currentTarget.className += " active";
@@ -240,38 +316,15 @@
                 items: [
                 ],
                 itemData: {
-                }
+                },
+                requiredMats: [
+                ],
+                currentExport: {},
+                currentExportString: ''
             },
             computed: {
                 activeGirls: function() {
                     return this.items.filter(item => item.checked);
-                },
-                requiredMats: function() {
-                    obj = {};
-                    console.log(this.itemData)
-                    for (i in Object.keys(this.itemData)) {
-                        obj[Object.keys(this.itemData)[i]] = 0;
-                    };
-
-                    girls = this.activeGirls;
-                    for (i in girls) {
-                        girl = girls[i];
-                        for (j = girl.currentMagia+1;j<6;j++) {
-                            for (k in Object.keys(girl.magiaLevel[j])) {
-                                key = Object.keys(girl.magiaLevel[j])[k];
-                                Vue.set(obj, key, obj[key]+=parseInt(girl.magiaLevel[j][key]));
-                            }
-                        }
-                    }
-                    console.log(obj);
-                    obj2 = [];
-                    i = 0;
-                    for (i in Object.keys(obj)) {
-                        Vue.set(obj2,i,{'ID': Object.keys(obj)[i], 'count': obj[Object.keys(obj)[i]]});
-                        i+=1;
-                    }
-                    console.log(obj2);
-                    return obj2;
                 }
             }, 
             methods: {
@@ -298,7 +351,7 @@
                     girl.awakenCircles = [];
                     for (material in girl.awakenLevel[girl.currentAwaken]) {
                         if (material != 100) {
-                            var obj = new Object();
+                            obj = {};
                             obj['material'] = girl.awakenLevel[girl.currentAwaken][material];
                             obj['itemID'] = material;
                             obj['ID'] = i;
@@ -314,8 +367,127 @@
                     console.log(girl);
                 },
                 getItemProperty: function(ID, prop) {
-                    console.log(this.itemData[ID])
                     return this.itemData[ID][prop];
+                },
+                updateRequiredMats: function() {
+                    obj = {};
+                    for (i in Object.keys(this.itemData)) {
+                        obj[Object.keys(this.itemData)[i]] = 0;
+                    };
+
+                    girls = this.activeGirls;
+                    for (i in girls) {
+                        girl = girls[i];
+                        console.log(girl)
+                        //Magia
+                        for (j = girl.currentMagia+1;j<6;j++) {
+                            for (k in Object.keys(girl.magiaLevel[j])) {
+                                key = Object.keys(girl.magiaLevel[j])[k];
+                                Vue.set(obj, key, obj[key]+=parseInt(girl.magiaLevel[j][key]));
+                            };
+                        };
+
+                        //Awaken
+                        for (j = girl.currentAwaken;j<6;j++) {
+                            for (k in Object.keys(girl.awakenLevel[j])) {
+                                key = Object.keys(girl.awakenLevel[j])[k];
+                                Vue.set(obj, key, obj[key]+=parseInt(girl.awakenLevel[j][key]));
+                            };
+                        };
+
+                        //Compensate from the circles
+                        for (j in girl.awakenCircles) {
+                            circle = girl.awakenCircles[j];
+                            if (circle.checked) {
+                                obj[circle.itemID] -= circle.material;
+                            };
+                        };
+                    }
+                    obj2 = [];
+                    i = 0;
+                    for (j in Object.keys(obj)) {
+                        console.log('a', obj[Object.keys(obj)[j]]);
+                        if (obj[Object.keys(obj)[j]] != 0) {
+                            Vue.set(obj2,i,{
+                                'ID': Object.keys(obj)[j], 
+                                'count': obj[Object.keys(obj)[j]], 
+                                'name': this.getItemProperty(Object.keys(obj)[j],'name'),
+                                'src': this.getItemProperty(Object.keys(obj)[j],'src')
+                            });
+                            i+=1;
+                        }
+                    }
+                    extend(this.requiredMats,obj2);              
+                },
+                exportData: function() {
+                    obj = {}
+                    for (i in this.items) {
+                        girl = this.items[i];
+                        if (girl.checked) {
+                            a = [];
+                            for (i in girl.awakenCircles) {
+                                a.push(girl.awakenCircles[i].checked);
+                            };    
+                            Vue.set(obj,girl.ID,{
+                                'currentAwaken': girl.currentAwaken, 
+                                'currentMagia': girl.currentMagia, 
+                                'awakenCircles': a
+                            });
+                        }
+                    }
+                    this.currentExport = obj;
+                },
+                importData: function() {
+                    listOfIDs = [];
+                    this.currentExport = JSON.parse(this.currentExportString);
+                    for (i in this.currentExport) {
+                        listOfIDs.push(i);
+                    };
+                    for (k in this.items) {
+                        girl = this.items[k];
+                        if (listOfIDs.includes(girl.ID)) {
+                            //update the girl
+                            girl.currentAwaken = this.currentExport[girl.ID].currentAwaken;
+                            girl.currentMagia = this.currentExport[girl.ID].currentMagia;
+                            girl.checked = true;
+                            i = 0;
+                            for (material in girl.awakenLevel[girl.currentAwaken]) {
+                                if (material != 100) {
+                                    obj = {};
+                                    obj['material'] = girl.awakenLevel[girl.currentAwaken][material];
+                                    obj['itemID'] = material;
+                                    obj['ID'] = i;
+                                    obj['src'] = this.getItemProperty(material, 'src');
+                                    obj['name'] = this.getItemProperty(material, 'name');
+                                    obj['checked'] = this.currentExport[girl.ID].awakenCircles[i];
+                                    obj['class'] = '';
+                                    Vue.set(girl.awakenCircles, i, obj);
+                                    i+=1;
+                                }
+                            }
+                        }
+                        else {
+                            //wipe the girl
+                            girl.currentAwaken = 1;
+                            girl.currentMagia = 1;
+                            girl.checked = false;
+                            i = 0;
+                            for (material in girl.awakenLevel[girl.currentAwaken]) {
+                                if (material != 100) {
+                                    obj = {};
+                                    obj['material'] = girl.awakenLevel[girl.currentAwaken][material];
+                                    obj['itemID'] = material;
+                                    obj['ID'] = i;
+                                    obj['src'] = this.getItemProperty(material, 'src');
+                                    obj['name'] = this.getItemProperty(material, 'name');
+                                    obj['checked'] = false;
+                                    obj['class'] = '';
+                                    Vue.set(girl.awakenCircles, i, obj);
+                                    i+=1;
+                                }
+                            }
+                        }
+                    }
                 }
             }
         })
@@ -325,7 +497,7 @@
             var data = JSON.parse(response);
             for (i in data) {
                 var path = 'puellaImages/card_'+data[i]["ID"]+'_f.png';
-                newImage(path, puellaImages[i]);
+                // newImage(path, puellaImages[i]);
                 A.items.push(extend(data[i], 
                     {
                         class: "girl-selector", 
@@ -333,7 +505,7 @@
                         checked: false,
                         currentAwaken: 1, 
                         currentMagia: 1, 
-                        awakenCircles: [{'material': 5, 'itemID': 111, 'ID': 0, 'src': '', 'name': 'flaming tostitos', 'checked': false, 'class': ''}]
+                        awakenCircles: []
                     }
                 ));
             }
@@ -345,7 +517,7 @@
             for (j in Object.keys(data)) {
                 i = Object.keys(data)[j];
                 var path = 'itemImages/item_gift_'+i+'.png';
-                newImage(path, itemImages[i]);
+                // newImage(path, itemImages[i]);
                 Vue.set(A.itemData, i, {src: path, name: data[i]});
             }
         }, "ItemNames.json");
