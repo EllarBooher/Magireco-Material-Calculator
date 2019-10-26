@@ -182,7 +182,7 @@
     		<button class="tablinks" onclick="openTab(event, 'A')">Select Units</button>
     		<button class="tablinks" onclick="openTab(event, 'B')">Edit Units</button>
     		<button class="tablinks" onclick="openTab(event, 'C');A.updateRequiredMats()">Material Totals</button>
-            <button class="tablinks" onclick="openTab(event, 'D');console.log(A.currentExport)">Save/Load</button>
+            <button class="tablinks" onclick="openTab(event, 'D')">Save/Load</button>
     	</div>
     	<div id="A" class="tabcontent">
             <p>Click a girl to add them to your active roster.</p>
@@ -233,7 +233,7 @@
                 <button v-on:click="importData()">Import Data</button>
             </div>
             <div class="textwrapper">
-                <textarea id="textarea" v-model="currentExportString">{{ currentExport }}</textarea> 
+                <textarea id="textarea" v-model="currentExportString">{{ currentExport }}</textarea>
             </div>
         </div>
     </div>
@@ -417,7 +417,8 @@
                             i+=1;
                         }
                     }
-                    extend(this.requiredMats,obj2);              
+                    extend(this.requiredMats,obj2); 
+          
                 },
                 exportData: function() {
                     obj = {}
@@ -435,7 +436,9 @@
                             });
                         }
                     }
-                    this.currentExport = obj;
+                    extend(this.currentExport,obj);
+                    this.currentExportString = JSON.stringify(this.currentExport);
+                    console.log(this.currentExport);
                 },
                 importData: function() {
                     listOfIDs = [];
@@ -488,6 +491,7 @@
                             }
                         }
                     }
+
                 }
             }
         })
