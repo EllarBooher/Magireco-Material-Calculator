@@ -113,13 +113,12 @@
 	<div id="B" class="tabcontent">
 		<div v-for="item in items">
             <div class="girl-editor">
+                <input v-on:keyup.enter="updateSpecificGirl(item)" v-model="item.currentAwaken">
                 <img class="puellaPortrait1" v-bind:src="item.src">
                 <div>{{ item.Name }}</div>
             </div>
             <div class="awaken-circles">
-                <div v-for="material in Object.keys(item['awakenLevel']['4'])">
-                    <img class="awakenCircleImages" v-bind:src="images[material]"></img>
-                </div>
+                <awaken-circle-template v-for="material in item.awakenCircles" :material="material" :key="material.ID" />
             </div>
         </div>
         
@@ -127,6 +126,20 @@
 	<div id="C" class="tabcontent">
 		<p>Here goes the material interface</p>
 	</div>
+
+    <script>
+        Vue.component('awaken-circle-template', {
+            template: ` 
+                <div>
+                    <input type="checkbox" id="checkbox" true-value="12" false-value="0">
+                    <p>{{ material.src }}</p>
+                    <p>{{ material.name }}</p>
+                </div>
+            `,
+            props: ['material']
+        });
+    </script>
+
     <script>
         function openTab(evt, tabName) {
             var i, tabcontent, tablinks;
@@ -146,7 +159,7 @@
             evt.currentTarget.className += " active";
         }
         function extend(obj, src) {
-            Object.keys(src).forEach(function(key) { obj[key] = src[key]; });
+            Object.keys(src).forEach(function(key) { Vue.set(obj,key,src[key]); });
             return obj;
         }
         function loadJSON(callback, url) {   
@@ -160,6 +173,8 @@
             xobj.send(null);  
         }
         var puellaImages = [];
+        var itemImages = [];
+
         function newImage(path, destination) {
             destination = new Image();
             destination.src = path;
@@ -179,6 +194,32 @@
                 items: [
                 ],
                 images: {
+                },
+                itemNames: {
+                },
+                itemData: {
+                }
+            },
+            methods: {
+                updateSpecificGirl: function(girl) {
+                    i = 0;
+                    girl.awakenCircles = [];
+                    for (material in girl.awakenLevel[girl.currentAwaken]) {
+                        if (material != 100) {
+                            var obj = new Object();
+                            obj['material'] = girl.awakenLevel[girl.currentAwaken][material];
+                            obj['ID'] = material;
+                            obj['src'] = this.getItemProperty(material, 'src');
+                            obj['name'] = this.getItemProperty(material, 'name');
+                            Vue.set(girl.awakenCircles, i, obj);
+                            i+=1;
+                        }
+                    }
+                    console.log("Newly updated girl");                    
+                    console.log(girl);
+                },
+                getItemProperty: function(ID, prop) {
+                    return this.itemData[ID][prop];
                 }
             }
         })
@@ -187,30 +228,46 @@
             B.images[i] = 'itemImages/item_gift_'+i+'.png';
         };
         
-        console.log(B.images);
         function updateGirls() {
+            // For switching from the selection tab to the awaken circles tab
             B.items = [];
             for (i in A.items) {
                 if (A.items[i].checked) {
                     console.log("Added "+A.items[i].Name);
-                    B.items.push(A.items[i]);
+                    B.items.push(extend(A.items[i],{currentAwaken: "1", currentMagia: "1", awakenCircles: [{'111': 5, 'ID': 111, 'src': '', 'name': 'flaming tostitos'}]}));
                 }
             }
+            console.log("B.items");
+            console.log(B.items);
         }
-        console.log(A);
-        url = "Data.json";
+
         loadJSON(function(response) {
-            // Parse JSON string into object
+            // Parse girl JSON data A
             var data = JSON.parse(response);
-            console.log(data);
             for (i in data) {
                 var path = 'puellaImages/card_'+data[i]["ID"]+'_f.png';
-                console.log(data[i], path);
                 newImage(path, puellaImages[i]);
                 A.items.push(extend(data[i], {src: path, checked: false}));
             }
-            console.log(A)
-        }, url);
+        }, "girlData.json");
+
+        loadJSON(function(response) {
+            // Parse item name JSON data into B
+            var data = JSON.parse(response);
+            for (j in Object.keys(data)) {
+                i = Object.keys(data)[j];
+                var path = 'itemImages/item_gift_'+i+'.png';
+                newImage(path, itemImages[i]);
+                Vue.set(B.itemData, i, {src: path, name: data[i]});
+            }
+        }, "ItemNames.json");
+
+        console.log("A");
+        console.log(A);
+
+        console.log("B");
+        console.log(B);
+
 	</script>
 	</body>
 </head>
