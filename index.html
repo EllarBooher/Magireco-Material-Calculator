@@ -14,13 +14,20 @@
 	}
     .girl-selector {
         display:flex;
-        justify-content:space-between;
-        align-items:center;
-		border: 1px solid #ccc;
-		background-color: #f1f1f1;
+        align-items: center;
+        border: 1px solid #ccc;
+        background-color: #f1f1f1;
+    }
+    .girl-selector.active {
+        background-color: #f5dd42 !important;
     }
     .girl-selector input {
         width:100px;
+    }
+    .girl-selector div {
+        text-align: center;
+        height:100%;
+        width:100%;
     }
 
     .girl-editor {
@@ -31,30 +38,61 @@
 		background-color: #f1f1f1;
     }
     
-    .girl-editor div {
+    .girl-editor .girl-name {
         width:100%;
         display:inline-block;
     }
 
+    .girl-editor .levels-editor {
+        align-items: center;
+        text-align: center;
+        display: flex;
+        flex-direction: column;
+        width:150px;
+        padding: 10px;
+    }
+    .girl-editor .levels-editor input {
+        width: 20px;
+    }
+
     .awaken-circles {
-        height: 100px;
         display:flex;
         align-items: center;
         text-align: center;
-		border: 1px solid #ccc;
-		background-color: #f1f1f1;
+        border: 1px solid #ccc;
+        background-color: #f1f1f1;
+    }  
+
+    .awaken-circles div {
+        -webkit-user-select: none;
+        -khtml-user-select: none;
+        -moz-user-select: none;
+        -o-user-select: none;
+        user-select: none;
+        width: 16.7%;
+        height: 100px;
+        display:flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        border: 1px solid #ccc;
+        padding: 10px 0px;
+    }    
+
+    .awaken-circles .active {
+        background-color: #f5dd42;
     }    
     
-    .puellaPortrait1 {
+    .puella-portrait {
         width: 100px;
-        height; 100px;
+        height: 100px;
         border: 1px solid black;
         border-radius: 5px;    
     }
     
     .awakenCircleImages {
-        width: 50px;
-        height; 50px;
+        width: 70px;
+        height: 70px;
         border: 1px solid black;
         border-radius: 5px;    
     } 
@@ -98,44 +136,60 @@
 	<title> Magia Record Material Calculator </title>
     <script  src="vue.min.js"></script>
 	<body>
-	<div class="tab">
-		<button class="tablinks" onclick="openTab(event, 'A')">Select Units</button>
-		<button class="tablinks" onclick="openTab(event, 'B');updateGirls()">Edit Units</button>
-		<button class="tablinks" onclick="openTab(event, 'C')">Material Totals</button>
-	</div>
-	<div id="A" class="tabcontent">
-		<span class="girl-selector" v-for="item in items">
-            <img class="puellaPortrait1" v-bind:src="item.src">
-            <div>{{ item.Name }}</div>
-                <input v-on:click="console.log(A)" type="checkbox" id="checkbox" v-model="item.checked">
-        </span>
-	</div>
-	<div id="B" class="tabcontent">
-		<div v-for="item in items">
-            <div class="girl-editor">
-                <input v-on:keyup.enter="updateSpecificGirl(item)" v-model="item.currentAwaken">
-                <img class="puellaPortrait1" v-bind:src="item.src">
-                <div>{{ item.Name }}</div>
+	<div id="Parent">
+        <div class="tab">
+    		<button class="tablinks" onclick="openTab(event, 'A')">Select Units</button>
+    		<button class="tablinks" onclick="openTab(event, 'B')">Edit Units</button>
+    		<button class="tablinks" onclick="openTab(event, 'C')">Material Totals</button>
+    	</div>
+    	<div id="A" class="tabcontent">
+            <p>Click a girl to add them to your active roster.</p>
+    		<span v-for="item in items" v-bind:class="{ 'girl-selector active': item.checked, 'girl-selector': !item.checked }" v-on:click="updateCheckedGirl(item)">
+                <img class="puella-portrait" v-bind:src="item.src">
+                <div class="girl-selector-name">{{ item.Name }}</div>
+            </span>
+    	</div>
+    	<div id="B" class="tabcontent">
+            <p>Click a material to add it to the entered material list.</p> 
+    		<div v-for="item in activeGirls">
+                <div class="girl-editor">
+                    <div class="levels-editor">
+                        Awaken Level
+                        <input v-on:keyup.enter="updateSpecificGirl(item)" v-model="item.currentAwaken">
+                        Magia Level
+                        <input v-on:keyup.enter="updateSpecificGirl(item)" v-model="item.currentMagia">
+                    </div>
+                    <img class="puella-portrait" v-bind:src="item.src">
+                    <div class="girl-name">{{ item.Name }}</div>
+                </div>
+                <div class="awaken-circles">
+                    <awaken-circle-template 
+                        v-for="material in item.awakenCircles"
+                        v-on:clickawakencircle="updateAwakenCircle(item,$event)"
+                        :material="material" 
+                        :key="material.ID" />
+                </div>
             </div>
-            <div class="awaken-circles">
-                <awaken-circle-template v-for="material in item.awakenCircles" :material="material" :key="material.ID" />
+            
+    	</div>
+    	<div id="C" class="tabcontent">
+    		<div v-for="i in requiredMats">
+                {{ getItemProperty(i.ID,'name') }} : {{ i.count }}
+                
             </div>
-        </div>
-        
-	</div>
-	<div id="C" class="tabcontent">
-		<p>Here goes the material interface</p>
-	</div>
+    	</div>
+    </div>
 
     <script>
         Vue.component('awaken-circle-template', {
             template: ` 
-                <div>
-                    <input type="checkbox" id="checkbox" true-value="12" false-value="0">
-                    <p>{{ material.src }}</p>
-                    <p>{{ material.name }}</p>
+                <div v-bind:class="{ 'active': material.checked }" v-on:click="$emit('clickawakencircle',material.ID);">
+                    <img class="awakenCircleImages" v-bind:src="material.src">
+                    {{ material.name }}
                 </div>
             `,
+            methods: {
+            },
             props: ['material']
         });
     </script>
@@ -181,26 +235,64 @@
         }
         
         var A = new Vue({
-            el: '#A',
-            data: {
-                items: [
-                ]
-            }
-        })
-        
-        var B = new Vue({
-            el: '#B',
+            el: '#Parent',
             data: {
                 items: [
                 ],
-                images: {
-                },
-                itemNames: {
-                },
                 itemData: {
                 }
             },
+            computed: {
+                activeGirls: function() {
+                    return this.items.filter(item => item.checked);
+                },
+                requiredMats: function() {
+                    obj = {};
+                    console.log(this.itemData)
+                    for (i in Object.keys(this.itemData)) {
+                        obj[Object.keys(this.itemData)[i]] = 0;
+                    };
+
+                    girls = this.activeGirls;
+                    for (i in girls) {
+                        girl = girls[i];
+                        for (j = girl.currentMagia+1;j<6;j++) {
+                            for (k in Object.keys(girl.magiaLevel[j])) {
+                                key = Object.keys(girl.magiaLevel[j])[k];
+                                Vue.set(obj, key, obj[key]+=parseInt(girl.magiaLevel[j][key]));
+                            }
+                        }
+                    }
+                    console.log(obj);
+                    obj2 = [];
+                    i = 0;
+                    for (i in Object.keys(obj)) {
+                        Vue.set(obj2,i,{'ID': Object.keys(obj)[i], 'count': obj[Object.keys(obj)[i]]});
+                        i+=1;
+                    }
+                    console.log(obj2);
+                    return obj2;
+                }
+            }, 
             methods: {
+                updateCheckedGirl: function(girl) {
+                    girl.checked = !girl.checked;
+                    if (girl.checked) {
+                        girl.class = "girl-selector active";
+                    }
+                    else {
+                        girl.class = "girl-selector";
+                    }
+                },
+                updateAwakenCircle: function(girl,item) {
+                    girl.awakenCircles[item].checked = !girl.awakenCircles[item].checked;
+                    if (girl.awakenCircles[item].checked) {
+                        girl.awakenCircles[item].class = 'active';
+                    }
+                    else {
+                        girl.awakenCircles[item].class = '';
+                    };
+                },
                 updateSpecificGirl: function(girl) {
                     i = 0;
                     girl.awakenCircles = [];
@@ -208,9 +300,12 @@
                         if (material != 100) {
                             var obj = new Object();
                             obj['material'] = girl.awakenLevel[girl.currentAwaken][material];
-                            obj['ID'] = material;
+                            obj['itemID'] = material;
+                            obj['ID'] = i;
                             obj['src'] = this.getItemProperty(material, 'src');
                             obj['name'] = this.getItemProperty(material, 'name');
+                            obj['checked'] = false;
+                            obj['class'] = '';
                             Vue.set(girl.awakenCircles, i, obj);
                             i+=1;
                         }
@@ -223,23 +318,6 @@
                 }
             }
         })
-        
-        for (let i = 100; i < 611; i++) {
-            B.images[i] = 'itemImages/item_gift_'+i+'.png';
-        };
-        
-        function updateGirls() {
-            // For switching from the selection tab to the awaken circles tab
-            B.items = [];
-            for (i in A.items) {
-                if (A.items[i].checked) {
-                    console.log("Added "+A.items[i].Name);
-                    B.items.push(extend(A.items[i],{currentAwaken: "1", currentMagia: "1", awakenCircles: [{'111': 5, 'ID': 111, 'src': '', 'name': 'flaming tostitos'}]}));
-                }
-            }
-            console.log("B.items");
-            console.log(B.items);
-        }
 
         loadJSON(function(response) {
             // Parse girl JSON data A
@@ -247,7 +325,16 @@
             for (i in data) {
                 var path = 'puellaImages/card_'+data[i]["ID"]+'_f.png';
                 newImage(path, puellaImages[i]);
-                A.items.push(extend(data[i], {src: path, checked: false}));
+                A.items.push(extend(data[i], 
+                    {
+                        class: "girl-selector", 
+                        src: path, 
+                        checked: false,
+                        currentAwaken: 1, 
+                        currentMagia: 1, 
+                        awakenCircles: [{'material': 5, 'itemID': 111, 'ID': 0, 'src': '', 'name': 'flaming tostitos', 'checked': false, 'class': ''}]
+                    }
+                ));
             }
         }, "girlData.json");
 
@@ -258,15 +345,9 @@
                 i = Object.keys(data)[j];
                 var path = 'itemImages/item_gift_'+i+'.png';
                 newImage(path, itemImages[i]);
-                Vue.set(B.itemData, i, {src: path, name: data[i]});
+                Vue.set(A.itemData, i, {src: path, name: data[i]});
             }
         }, "ItemNames.json");
-
-        console.log("A");
-        console.log(A);
-
-        console.log("B");
-        console.log(B);
 
 	</script>
 	</body>
