@@ -4,10 +4,7 @@
 	<meta http-equiv="content-type" content="text/html; charset=UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<style type="text/css">
-    div p {
-        white-space: pre;
-    }
-	.tab {
+    .tab {
 		overflow: hidden;
 		border: 1px solid #ccc;
 		background-color: #f1f1f1;
@@ -90,6 +87,21 @@
         border-radius: 5px;    
     }
     
+    .level-buttons {
+        width:100%;
+        display: flex;
+        flex-direction: horizontal;
+    }
+
+    .level-buttons div {
+        text-align: center;
+        align-items: center;
+        width:25px;
+        height: 25px;
+        border: 1px solid #ccc;
+        background-color: #f1f1f1;
+    }
+
     .awakenCircleImages {
         width: 70px;
         height: 70px;
@@ -111,7 +123,7 @@
     }
     .material-template-wrapper div div {
         padding: 10px;
-        width: 100%;
+        flex: 1;
     }
     .material-template-wrapper div img {
         width: 40px;
@@ -120,7 +132,7 @@
 
 	/* Style the buttons that are used to open the tab content */
 	.tab button {
-		width: 33%;
+		width: 50%;
 		background-color: inherit;
 		float: left;
 		border: none;
@@ -148,31 +160,65 @@
 		border: 1px solid #ccc;
 		border-top: none;
 	}
-    #D {
+
+    .save-data-wrapper {
+        padding:20px;
         display: flex;
         flex-direction: column;
     }
-    #D div {
+
+    .save-data-wrapper  div {
         display: flex;
         flex-direction: row;
     }
-    #D button {
+
+    .save-data-wrapper button {
+        flex: 1;
         height: 50px;
-        width: 50%;
     }
+
     .textwrapper {
         width:100%;
         height:500px;
     }
+
+    .textwrapper div {
+        position: absolute;
+        left: 50%;
+        top: 40%;
+        width: 40vw;
+        max-width: 200px;
+        transform: translate(-50%,0);
+        height: 20%;
+        justify-content: center;
+        align-items: center;
+        font-size: 20px;
+        border: 1px solid #ccc;
+        background-color: #f1f1f1;
+    }
+
+    .textwrapper .hide {
+        visibility: hidden;
+        opacity: 0;
+        transition: visibility 0s .8s, opacity .8s linear;
+
+    }
+
+    .textwrapper .show {
+        transition: opacity .8s linear;
+    }
+
     .textwrapper textarea {
+        resize: none; 
         width:100%;
         height:500px;
     }
 
-	@keyframes fadeEffect {
-		from {opacity: 0;}
-		to {opacity: 1;}
-	}
+    @keyframes fadeEffect {
+        from {opacity: 0;}
+        to {opacity: 1;}
+    }
+
 	</style>
 	<title> Magia Record Material Calculator </title>
     <script  src="vue.min.js"></script>
@@ -182,24 +228,38 @@
     		<button class="tablinks" onclick="openTab(event, 'A')">Select Units</button>
     		<button class="tablinks" onclick="openTab(event, 'B')">Edit Units</button>
     		<button class="tablinks" onclick="openTab(event, 'C');A.updateRequiredMats()">Material Totals</button>
-            <button class="tablinks" onclick="openTab(event, 'D')">Save/Load</button>
+            <button class="tablinks" onclick="openTab(event, 'D');A.exportData()">Save/Load</button>
     	</div>
-    	<div id="A" class="tabcontent">
+        <div id="A" class="tabcontent">
             <p>Click a girl to add them to your active roster.</p>
-    		<span v-for="item in items" v-bind:class="{ 'girl-selector active': item.checked, 'girl-selector': !item.checked }" v-on:click="updateCheckedGirl(item)">
+            <span v-for="item in items" v-bind:class="{ 'girl-selector active': item.checked, 'girl-selector': !item.checked }" v-on:click="updateCheckedGirl(item)">
                 <img class="puella-portrait" v-bind:src="item.src">
                 <div class="girl-selector-name">{{ item.Name }}</div>
             </span>
-    	</div>
+        </div>
     	<div id="B" class="tabcontent">
             <p>Click a material to add it to the entered material list.</p> 
     		<div v-for="item in activeGirls">
                 <div class="girl-editor">
                     <div class="levels-editor">
                         Awaken Level
-                        <input v-on:keyup.enter="updateSpecificGirl(item)" v-model="item.currentAwaken">
+                        <div class="level-buttons">
+                            <div 
+                                v-for="i in [1,2,3,4,5]" 
+                                v-on:click="item.currentAwaken = i; updateSpecificGirl(item)" 
+                                :style="[(item.currentAwaken == (i).toString()) ? {'background-color': '#f5dd42'} : {}]">
+                                {{ i }}
+                            </div>
+                         </div>
                         Magia Level
-                        <input v-model="item.currentMagia">
+                        <div class="level-buttons">
+                            <div 
+                                v-for="i in [1,2,3,4,5]" 
+                                v-on:click="item.currentMagia = i" 
+                                :style="[(item.currentMagia == (i).toString()) ? {'background-color': '#f5dd42'} : {}]">
+                                {{ i }}
+                            </div>
+                        </div>
                     </div>
                     <img class="puella-portrait" v-bind:src="item.src">
                     <div class="girl-name">{{ item.Name }}</div>
@@ -215,25 +275,34 @@
             
     	</div>
         <div id="C" class="tabcontent">
+            Press the up and down arrow keys to move between text fields.
                 <div class="material-template-wrapper">
                     <div>
                     </div>
                     <div>
                         Total Needed
                     </div>
-                    <div></div>
+                    <div>Total Owned</div>
+                    <div>Net Needed</div>
                 </div>
             <material-template 
                 v-for="i in requiredMats"
-                :material="i"/>
+                v-on:update:owned="Vue.set(ownedMats, i.ID, (function() {if (!isNaN(parseInt($event))) {return parseInt($event)} else {return 0}})()); console.log(ownedMats)"
+                :value="i"
+                :owned="ownedMats[i.ID]"
+                :key="i.ID"/>
         </div>
         <div id="D" class="tabcontent">
-            <div>
-                <button v-on:click="exportData()">Export Data</button>
-                <button v-on:click="importData()">Import Data</button>
-            </div>
-            <div class="textwrapper">
-                <textarea id="textarea" v-model="currentExportString">{{ currentExport }}</textarea>
+            <div class="save-data-wrapper">
+                <div>
+                    <button v-on:click="exportData()">Export Data</button>
+                    <button v-on:click="saveToStorage()">Save to Local Storage</button>
+                    <button v-on:click="importData(true)">Import Data</button>
+                </div>
+                <div class="textwrapper">
+                    <textarea id="textarea" v-model="textAreaValue"></textarea>
+                    <div v-bind:class="hideSaved ? 'hide':'show'">Saved!</div>
+                </div>
             </div>
         </div>
     </div>
@@ -255,19 +324,74 @@
             template: `
                 <div class="material-template-wrapper">
                     <div>
-                        <img v-bind:src="material.src">
-                        <div>{{ material.name }}</div>
+                        <img v-bind:src="value.src">
+                        <div>{{ value.name }}</div>
                     </div>
                     <div>
-                        {{ material.count }}
+                        {{ value.count }}
                     </div>
-                    <div></div>
+                    <div>
+                        <input 
+                            v-bind:id="'inputfield'+value.inputID"
+                            v-on:focus="isSelected = true"
+                            v-on:input="update(event.target.value)" 
+                            v-on:keydown.up="moveField(-1)"
+                            v-on:keydown.down="moveField(1)" 
+                            v-on:blur="exitField($event)" 
+                            v-on:keydown.enter="exitField($event)"  
+                            v-bind:value="textValue" type="text">
+                    </div>
+                    <div>
+                    {{ netNeeded }}
+                    </div>
                 </div>
             `,
-            methods: {
-
+            data: function() {
+                return {
+                    isSelected: false,
+                    tempOwned: ''
+                }
             },
-            props: ['material']
+            computed: {
+                textValue: function() {
+                    if (this.isSelected && (this.owned == 0)) {
+                        return ''
+                    }
+                    else {
+                        return this.owned
+                    };
+                },
+                netNeeded: function() {
+                    if (-1*(this.owned - this.value.count) > 0) {
+                        return -1*(this.owned - this.value.count)
+                    }
+                    else {
+                        return 0
+                    }
+                }
+            },
+            methods: {
+                moveField: function(shift) {
+                    if (! (document.getElementById('inputfield'+(this.value.inputID+shift)) === null)) {
+                        let nextField = document.getElementById('inputfield'+(this.value.inputID+shift));
+                        nextField.focus();
+                        setTimeout(function(nextField) {nextField.setSelectionRange(nextField.value.length * 2,nextField.value.length * 2);},0,nextField);
+                    }
+                },
+                exitField: function(event) {
+                    console.log(event)
+                    document.activeElement.blur();
+                    this.isSelected = false;
+                    this.tempOwned = '';
+                    this.update(event.target.value);
+                },
+                update: function(value) {
+                    console.log('update', key, value)
+                    this.tempOwned = value;
+                    this.$emit('update:owned', value)
+                }
+            },
+            props: ['value', 'owned']
         })
     </script>
 
@@ -292,15 +416,12 @@
             Object.keys(src).forEach(function(key) { Vue.set(obj,key,src[key]); });
             return obj;
         }
-        function loadJSON(callback, url) {   
-            var xobj = new XMLHttpRequest();
-                xobj.overrideMimeType("application/json");
-            xobj.open('GET', url, true); // Replace 'my_data' with the path to your file
-            xobj.onload = function () {
-                // Required use of an anonymous callback as .open will NOT return a value but simply returns undefined in asynchronous mode
-                callback(xobj.responseText);
-            };
-            xobj.send(null);  
+        function extendImmuted(obj, src) {
+            temp = {};
+            Object.keys(obj).forEach(function(key) { Vue.set(temp,key,obj[key]); });        
+            Object.keys(src).forEach(function(key) { Vue.set(temp,key,src[key]); });       
+            console.log('extendImmuted:', temp);
+            return temp;    
         }
         var puellaImages = [];
         var itemImages = [];
@@ -313,14 +434,13 @@
         var A = new Vue({
             el: '#Parent',
             data: {
-                items: [
-                ],
-                itemData: {
-                },
-                requiredMats: [
-                ],
+                items: [],
+                itemData: {},
+                requiredMats: [],
                 currentExport: {},
-                currentExportString: ''
+                textAreaValue: '',
+                ownedMats: {},
+                hideSaved: true
             },
             computed: {
                 activeGirls: function() {
@@ -377,9 +497,8 @@
                     girls = this.activeGirls;
                     for (i in girls) {
                         girl = girls[i];
-                        console.log(girl)
                         //Magia
-                        for (j = girl.currentMagia+1;j<6;j++) {
+                        for (j = parseInt(girl.currentMagia)+1;j<6;j++) {
                             for (k in Object.keys(girl.magiaLevel[j])) {
                                 key = Object.keys(girl.magiaLevel[j])[k];
                                 Vue.set(obj, key, obj[key]+=parseInt(girl.magiaLevel[j][key]));
@@ -387,7 +506,7 @@
                         };
 
                         //Awaken
-                        for (j = girl.currentAwaken;j<6;j++) {
+                        for (j = parseInt(girl.currentAwaken);j<6;j++) {
                             for (k in Object.keys(girl.awakenLevel[j])) {
                                 key = Object.keys(girl.awakenLevel[j])[k];
                                 Vue.set(obj, key, obj[key]+=parseInt(girl.awakenLevel[j][key]));
@@ -405,9 +524,9 @@
                     obj2 = [];
                     i = 0;
                     for (j in Object.keys(obj)) {
-                        console.log('a', obj[Object.keys(obj)[j]]);
                         if (obj[Object.keys(obj)[j]] != 0) {
                             Vue.set(obj2,i,{
+                                'inputID': i,
                                 'ID': Object.keys(obj)[j], 
                                 'count': obj[Object.keys(obj)[j]], 
                                 'name': this.getItemProperty(Object.keys(obj)[j],'name'),
@@ -417,9 +536,11 @@
                         }
                     }
                     extend(this.requiredMats,obj2); 
+                    console.log(this.requiredMats)
           
                 },
                 exportData: function() {
+                    this.currentExport = {};
                     obj = {}
                     for (i in this.items) {
                         girl = this.items[i];
@@ -436,12 +557,14 @@
                         }
                     }
                     extend(this.currentExport,obj);
-                    this.currentExportString = JSON.stringify(this.currentExport);
+                    this.textAreaValue = JSON.stringify(this.currentExport);
                     console.log(this.currentExport);
                 },
-                importData: function() {
+                importData: function(importBox) {
                     listOfIDs = [];
-                    this.currentExport = JSON.parse(this.currentExportString);
+                    if (importBox) {
+                        this.currentExport = JSON.parse(this.currentExportString);
+                    };
                     for (i in this.currentExport) {
                         listOfIDs.push(i);
                     };
@@ -489,41 +612,70 @@
                                 }
                             }
                         }
+
                     }
 
+                },
+                saveToStorage: function() {
+                    localStorage.setItem('megucaData',JSON.stringify(this.currentExport));
+                    this.hideSaved = false;
+                    setTimeout(function(me) {
+                        me.hideSaved = true;
+                    }, 2000, this);
+                },
+                loadJSON(callback, url) {   
+                    var xobj = new XMLHttpRequest();
+                        xobj.overrideMimeType("application/json");
+                    xobj.open('GET', url, true); // Replace 'my_data' with the path to your file
+                    xobj.onload = function () {
+                        // Required use of an anonymous callback as .open will NOT return a value but simply returns undefined in asynchronous mode
+                        callback(xobj.responseText);
+                    };
+                    xobj.send(null);  
                 }
+            },
+            beforeMount() {
+
+                this.loadJSON(function(response) {
+                    // Parse item name JSON data into B
+                    var data = JSON.parse(response);
+                    for (j in Object.keys(data)) {
+                        i = Object.keys(data)[j];
+                        var path = 'itemImages/item_gift_'+i+'.png';
+                        // newImage(path, itemImages[i]);
+                        Vue.set(A.itemData, i, {src: path, name: data[i]});
+                    }
+                    for (i in Object.keys(A.itemData)) {
+                        Vue.set(A.ownedMats,Object.keys(A.itemData)[i],0);
+                    };
+                    console.log(A.ownedMats);
+                }, "ItemNames.json");
+
+                this.loadJSON(function(response) {
+                    // Parse girl JSON data A
+                    var data = JSON.parse(response);
+                    for (i in data) {
+                        var path = 'puellaImages/card_'+data[i]["ID"]+'_f.png';
+                        // newImage(path, puellaImages[i]);
+                        A.items.push(extend(data[i], 
+                            {
+                                class: "girl-selector", 
+                                src: path, 
+                                checked: false,
+                                currentAwaken: 1, 
+                                currentMagia: 1, 
+                                awakenCircles: []
+                            }
+                        ));
+                    };
+                    A.currentExport = JSON.parse(localStorage.getItem('megucaData'));
+                    A.importData(false);
+                }, "girlData.json");
+
             }
         })
 
-        loadJSON(function(response) {
-            // Parse girl JSON data A
-            var data = JSON.parse(response);
-            for (i in data) {
-                var path = 'puellaImages/card_'+data[i]["ID"]+'_f.png';
-                // newImage(path, puellaImages[i]);
-                A.items.push(extend(data[i], 
-                    {
-                        class: "girl-selector", 
-                        src: path, 
-                        checked: false,
-                        currentAwaken: 1, 
-                        currentMagia: 1, 
-                        awakenCircles: []
-                    }
-                ));
-            }
-        }, "girlData.json");
 
-        loadJSON(function(response) {
-            // Parse item name JSON data into B
-            var data = JSON.parse(response);
-            for (j in Object.keys(data)) {
-                i = Object.keys(data)[j];
-                var path = 'itemImages/item_gift_'+i+'.png';
-                // newImage(path, itemImages[i]);
-                Vue.set(A.itemData, i, {src: path, name: data[i]});
-            }
-        }, "ItemNames.json");
 
 	</script>
 	</body>
