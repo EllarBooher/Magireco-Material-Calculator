@@ -222,7 +222,7 @@
 	</style>
 	<title> Magia Record Material Calculator </title>
     <script  src="vue.min.js"></script>
-	<body>
+	<body onunload="exportData(); saveToStorage(false);">
 	<div id="Parent">
         <div class="tab">
     		<button class="tablinks" onclick="openTab(event, 'A')">Select Units</button>
@@ -275,7 +275,7 @@
             
     	</div>
         <div id="C" class="tabcontent">
-            Press the up and down arrow keys to move between text fields.
+            Press w and s to move between text fields.
                 <div class="material-template-wrapper">
                     <div>
                     </div>
@@ -289,15 +289,16 @@
                 v-for="i in requiredMats"
                 v-on:update:owned="Vue.set(ownedMats, i.ID, (function() {if (!isNaN(parseInt($event))) {return parseInt($event)} else {return 0}})()); console.log(ownedMats)"
                 :value="i"
-                :owned="ownedMats[i.ID]"
+                :owned="fixInteger(ownedMats[i.ID])"
                 :key="i.ID"/>
         </div>
         <div id="D" class="tabcontent">
             <div class="save-data-wrapper">
                 <div>
                     <button v-on:click="exportData()">Export Data</button>
-                    <button v-on:click="saveToStorage()">Save to Local Storage</button>
-                    <button v-on:click="importData(true)">Import Data</button>
+                    <button v-on:click="saveToStorage(true)">Save to Local Storage</button>
+                    <button v-on:click="try { importData(true) } catch(error) { alert('Error, data may be corrupt'); console.log(error)} ">Import Data</button>
+                    <button v-on:click="wipeData()">Wipe Data</button>
                 </div>
                 <div class="textwrapper">
                     <textarea id="textarea" v-model="textAreaValue"></textarea>
@@ -328,39 +329,26 @@
                         <div>{{ value.name }}</div>
                     </div>
                     <div>
-                        {{ value.count }}
+                        {{ value.count }} {{ value.owned }}
                     </div>
                     <div>
                         <input 
                             v-bind:id="'inputfield'+value.inputID"
-                            v-on:focus="isSelected = true"
+                            type="number"
                             v-on:input="update(event.target.value)" 
-                            v-on:keydown.up="moveField(-1)"
-                            v-on:keydown.down="moveField(1)" 
+                            v-on:keydown.w="moveField(-1)"
+                            v-on:keydown.s="moveField(1)" 
                             v-on:blur="exitField($event)" 
                             v-on:keydown.enter="exitField($event)"  
-                            v-bind:value="textValue" type="text">
+                            v-bind:value="owned"
+                            min="0">
                     </div>
                     <div>
                     {{ netNeeded }}
                     </div>
                 </div>
             `,
-            data: function() {
-                return {
-                    isSelected: false,
-                    tempOwned: ''
-                }
-            },
             computed: {
-                textValue: function() {
-                    if (this.isSelected && (this.owned == 0)) {
-                        return ''
-                    }
-                    else {
-                        return this.owned
-                    };
-                },
                 netNeeded: function() {
                     if (-1*(this.owned - this.value.count) > 0) {
                         return -1*(this.owned - this.value.count)
@@ -375,18 +363,13 @@
                     if (! (document.getElementById('inputfield'+(this.value.inputID+shift)) === null)) {
                         let nextField = document.getElementById('inputfield'+(this.value.inputID+shift));
                         nextField.focus();
-                        setTimeout(function(nextField) {nextField.setSelectionRange(nextField.value.length * 2,nextField.value.length * 2);},0,nextField);
                     }
                 },
                 exitField: function(event) {
-                    console.log(event)
                     document.activeElement.blur();
-                    this.isSelected = false;
-                    this.tempOwned = '';
                     this.update(event.target.value);
                 },
                 update: function(value) {
-                    console.log('update', key, value)
                     this.tempOwned = value;
                     this.$emit('update:owned', value)
                 }
@@ -430,7 +413,11 @@
             destination = new Image();
             destination.src = path;
         }
-        
+        window.onerror = function myErrorHandler(errorMsg, url, lineNumber) {
+            alert("Error occured: " + errorMsg);//or any message
+            return false;
+        };
+        var currentVersion = '2';
         var A = new Vue({
             el: '#Parent',
             data: {
@@ -448,6 +435,14 @@
                 }
             }, 
             methods: {
+                fixInteger: function(integer) {
+                    if (Number.isInteger(integer)) {
+                        return integer;
+                    }
+                    else {
+                        return 0;
+                    }
+                },
                 updateCheckedGirl: function(girl) {
                     girl.checked = !girl.checked;
                     if (girl.checked) {
@@ -556,24 +551,38 @@
                             });
                         }
                     }
-                    extend(this.currentExport,obj);
+                    console.log(this.ownedMats);
+                    extend(this.currentExport,{'girlData': obj, 'ownedMats': this.ownedMats, 'version': currentVersion});
+                    console.log(this.currentExport)
                     this.textAreaValue = JSON.stringify(this.currentExport);
-                    console.log(this.currentExport);
                 },
                 importData: function(importBox) {
                     listOfIDs = [];
                     if (importBox) {
-                        this.currentExport = JSON.parse(this.currentExportString);
+                        //if you want to import from the textarea instead of during initialization
+                        this.currentExport = JSON.parse(this.textAreaValue);
                     };
-                    for (i in this.currentExport) {
+                    console.log(this.currentExport);
+                    // data checking
+                    if (this.currentExport.version != currentVersion || this.currentExport.version == undefined) {
+                        console.log('Bad version detected!');
+                        alert('Bad version detected! You probably need to wipe the data using the wipe data button.')
+                    }
+
+
+
+
+                    let tempGirlData = this.currentExport.girlData;
+                    let tempOwnedMats = this.currentExport.ownedMats;
+                    for (i in tempGirlData) {
                         listOfIDs.push(i);
                     };
                     for (k in this.items) {
                         girl = this.items[k];
                         if (listOfIDs.includes(girl.ID)) {
                             //update the girl
-                            girl.currentAwaken = this.currentExport[girl.ID].currentAwaken;
-                            girl.currentMagia = this.currentExport[girl.ID].currentMagia;
+                            girl.currentAwaken = tempGirlData[girl.ID].currentAwaken;
+                            girl.currentMagia = tempGirlData[girl.ID].currentMagia;
                             girl.checked = true;
                             i = 0;
                             for (material in girl.awakenLevel[girl.currentAwaken]) {
@@ -584,7 +593,7 @@
                                     obj['ID'] = i;
                                     obj['src'] = this.getItemProperty(material, 'src');
                                     obj['name'] = this.getItemProperty(material, 'name');
-                                    obj['checked'] = this.currentExport[girl.ID].awakenCircles[i];
+                                    obj['checked'] = tempGirlData[girl.ID].awakenCircles[i];
                                     obj['class'] = '';
                                     Vue.set(girl.awakenCircles, i, obj);
                                     i+=1;
@@ -611,17 +620,28 @@
                                     i+=1;
                                 }
                             }
-                        }
-
-                    }
+                        };
+                    };
+                    this.ownedMats = tempOwnedMats;
 
                 },
-                saveToStorage: function() {
+                saveToStorage: function(showSaved) {
                     localStorage.setItem('megucaData',JSON.stringify(this.currentExport));
-                    this.hideSaved = false;
-                    setTimeout(function(me) {
-                        me.hideSaved = true;
-                    }, 2000, this);
+                    if (showSaved) {
+                        this.hideSaved = false;
+                        setTimeout(function(me) {
+                            me.hideSaved = true;
+                        }, 2000, this);
+                    }
+                },
+                wipeData: function() {
+                    if (confirm("Are you sure you want to wipe the data?")) {
+                        this.currentExport = {'girlData': {}, 'ownedMats': {}, 'version': currentVersion};
+                        this.importData(false);
+                        this.textAreaValue = JSON.stringify(this.currentExport);
+                        this.saveToStorage(false);
+                        alert("Data has been wiped.");
+                    }
                 },
                 loadJSON(callback, url) {   
                     var xobj = new XMLHttpRequest();
